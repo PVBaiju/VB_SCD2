@@ -1,0 +1,102 @@
+from datetime import datetime, timedelta
+from pyspark.sql.functions import current_date, lit
+from delta.tables import DeltaTable
+
+# ==========================================================
+# SOURCE ADLS AUTHENTICATION
+# ==========================================================
+
+spark.conf.set(
+    "fs.azure.account.auth.type.adlsdevvbsrc01.dfs.core.windows.net",
+    "OAuth"
+)
+
+spark.conf.set(
+    "fs.azure.account.oauth.provider.type.adlsdevvbsrc01.dfs.core.windows.net",
+    "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider"
+)
+
+spark.conf.set(
+    "fs.azure.account.oauth2.client.id.adlsdevvbsrc01.dfs.core.windows.net",
+    "2c5d85d1-759d-4e41-9703-905b120f74f5"
+)
+
+spark.conf.set(
+    "fs.azure.account.oauth2.client.secret.adlsdevvbsrc01.dfs.core.windows.net",
+    "YOUR_CLIENT_SECRET"
+)
+
+spark.conf.set(
+    "fs.azure.account.oauth2.client.endpoint.adlsdevvbsrc01.dfs.core.windows.net",
+    "https://login.microsoftonline.com/7cab1251-58e4-4efb-8936-ae9b0cb98fce/oauth2/token"
+)
+
+# ==========================================================
+# TARGET ADLS AUTHENTICATION
+# ==========================================================
+
+spark.conf.set(
+    "fs.azure.account.auth.type.adlsdevvbstd01.dfs.core.windows.net",
+    "OAuth"
+)
+
+spark.conf.set(
+    "fs.azure.account.oauth.provider.type.adlsdevvbstd01.dfs.core.windows.net",
+    "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider"
+)
+
+spark.conf.set(
+    "fs.azure.account.oauth2.client.id.adlsdevvbstd01.dfs.core.windows.net",
+    "2c5d85d1-759d-4e41-9703-905b120f74f5"
+)
+
+spark.conf.set(
+    "fs.azure.account.oauth2.client.secret.adlsdevvbstd01.dfs.core.windows.net",
+    "YOUR_CLIENT_SECRET"
+)
+
+spark.conf.set(
+    "fs.azure.account.oauth2.client.endpoint.adlsdevvbstd01.dfs.core.windows.net",
+    "https://login.microsoftonline.com/7cab1251-58e4-4efb-8936-ae9b0cb98fce/oauth2/token"
+)
+
+# ==========================================================
+# PROCESS DATE
+# ==========================================================
+
+# Today's file
+process_date = datetime.today().strftime("%Y/%m/%d")
+
+# If you want yesterday's file instead, use:
+# process_date = (datetime.today() - timedelta(days=1)).strftime("%Y/%m/%d")
+
+print(f"Processing Date : {process_date}")
+
+# ==========================================================
+# SOURCE FILE PATH (Direct ADLS Access)
+# ==========================================================
+
+source_path = f"abfss://output@adlsdevvbsrc01.dfs.core.windows.net/dim_scd2/{process_date}/*.parquet"
+
+print(f"Reading File : {source_path}")
+
+# ==========================================================
+# READ EVENT TRIGGERED FILE
+# ==========================================================
+
+raw_df = (
+    spark.read
+         .format("parquet")
+         .option("inferSchema", "true")
+         .load(source_path)
+)
+
+display(raw_df)
+
+# ==========================================================
+# TARGET DELTA PATH (Direct ADLS Access)
+# ==========================================================
+
+delta_path = "abfss://output@adlsdevvbstd01.dfs.core.windows.net/payment_delta_scd2"
+
+print(f"Target Delta Path : {delta_path}")
